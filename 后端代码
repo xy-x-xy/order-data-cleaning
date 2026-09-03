@@ -1,0 +1,88 @@
+from fastapi import FastAPI
+from pydantic import BaseModel, Field  # ← 改正拼写
+
+app = FastAPI()
+
+
+class A(BaseModel):
+    name: str = Field(min_length=2, max_length=10)
+    age: int = Field(ge=10, le=30)
+
+
+class B(BaseModel):
+    age: int = Field(ge=10, le=30)
+
+
+class Student:
+    def __init__(self):
+        self.students = [{'name': '李新华', 'age': 22}]  # ← 改成英文
+
+    def add(self, name: str, age: int):
+        for student in self.students:
+            if name == student['name']:  # ← 改成 name
+                return False  # ← 逻辑修正：已存在返回 False
+        self.students.append({'name': name, 'age': age})  # ← 改成 name
+        return True
+
+    def delete(self, name: str):
+        for student in self.students:
+            if name == student['name']:  # ← 改成 name
+                self.students.remove(student)
+                return True
+        return False
+
+    def update(self, name: str, new_age: int):
+        for student in self.students:
+            if name == student['name']:  # ← 改成 name
+                student['age'] = new_age  # ← 修正：改年龄，不是改名
+                return True
+        return False
+
+    def info(self):
+        return self.students
+
+
+x = Student()
+
+
+@app.get('/student')
+def home():
+    return x.info()
+
+
+@app.get('/student/{name}')
+def home_name(name: str):
+    for student in x.info():
+        if name == student['name']:  # ← 改成 name
+            return student
+    return {'error': '学生不存在'}
+
+
+@app.post('/student')
+def add_name(add: A):
+    success = x.add(add.name, add.age)
+    if success:
+        return f'添加{add.name}成功'
+    return f'{add.name}已存在，添加失败'
+
+
+@app.delete('/student/{name}')
+def delete_name(name: str):
+    success = x.delete(name)
+    if success:
+        return f'删除{name}成功'
+    return f'删除{name}失败'
+
+
+@app.put('/student/{name}')
+def update_name(name: str, update: B):
+    success = x.update(name, update.age)
+    if success:
+        return f'修改{name}成功'
+    return f'修改{name}失败'
+
+
+if __name__ == '__main__':
+    import uvicorn
+
+    uvicorn.run(app, host='127.0.0.1', port=8000)
